@@ -1,0 +1,39 @@
+{
+  "name": "node-phantomjs-wrapper",
+  "version": "0.0.0",
+  "description": "Simple wrapper for a child phantomjs instance. Most of the page API/events are exposed in a transparent way",
+  "main": "build/index",
+  "homepage": "https://github.com/tarruda/node-phantomjs-wrapper",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tarruda/node-phantomjs-wrapper.git"
+  },
+  "author": {
+    "name": "Thiago de Arruda",
+    "email": "tpadilha84@gmail.com"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/tarruda/node-phantomjs-wrapper/blob/master/LICENSE-MIT"
+    }
+  ],
+  "keywords": [
+    "phantomjs"
+  ],
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-coffee-build": "~1.4.5",
+    "grunt-coffeelint": "0.0.7",
+    "grunt-release": "~0.5.1",
+    "grunt-mocha-debug": "0.0.4",
+    "chai": "~1.7.2",
+    "mocha": "~1.12.1",
+    "source-map-support": "~0.2.3"
+  },
+  "dependencies": {
+    "phantomjs": "~1.9.2-0",
+    "line-stream": "0.0.3"
+  }
+}

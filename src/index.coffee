@@ -58,7 +58,7 @@ class PhantomJS extends EventEmitter
   receive: (data) ->
     msg = JSON.parse(data)
     if msg.type == 'phantomTimeout'
-      @close(-> )
+      return @close(-> )
     page = @pages[msg.pageId]
     event = msg.event.slice(2)
     event = event.charAt(0).toLowerCase() + event.slice(1)

@@ -16,8 +16,20 @@ phantomBin = path.join(p, 'node_modules/phantomjs/bin/phantomjs')
 main = path.join(p, 'phantomjs/main.coffee')
 
 
+instances = []
+
+
+process.on('exit', ->
+  for instance in instances
+    console.log(
+      "Killing pending phantomjs instance(pid: #{instance.child.pid})")
+    instance.close(-> )
+)
+
+
 class PhantomJS extends EventEmitter
   constructor: (@child) ->
+    instances.push(this)
     @pages = {}
     @port = null
     @closed = false
@@ -72,6 +84,8 @@ class PhantomJS extends EventEmitter
     @emit('closed')
     @child.on('close', cb)
     @child.kill('SIGTERM')
+    idx = instances.indexOf(this)
+    instances.splice(idx, 1)
 
 
 class Page extends EventEmitter
@@ -80,9 +94,12 @@ class Page extends EventEmitter
 
   for method in shared.methods.concat(shared.asyncMethods)
     do (method) =>
-      this::[method] = (args..., cb) ->
+      this::[method] = (args...) ->
         callback = (msg) ->
-          cb.apply(null, msg.args)
+          if args.length
+            cb = args[args.length - 1]
+            if typeof cb == 'function'
+              cb.apply(null, msg.args)
 
         if @closed
           throw new Error('page already closed')
@@ -100,7 +117,8 @@ class Page extends EventEmitter
 
   get: (name, cb) ->
     callback = (msg) ->
-      cb.apply(null, msg.args)
+      if typeof cb == 'function'
+        cb.apply(null, msg.args)
 
     @phantomjs.send(
       type: 'pageMessage'
@@ -111,7 +129,8 @@ class Page extends EventEmitter
 
   set: (name, val, cb) ->
     callback = (msg) ->
-      cb.apply(null, msg.args)
+      if typeof cb == 'function'
+        cb.apply(null, msg.args)
 
     @phantomjs.send(
       type: 'pageMessage'
@@ -122,7 +141,7 @@ class Page extends EventEmitter
 
 
 phantomjs = (options, cb) ->
-  timeout = 90000
+  timeout = 20000
   debug = false
   binPath = phantomBin
 
@@ -136,7 +155,7 @@ phantomjs = (options, cb) ->
         binPath = options.binPath
       debug = options.debug
 
-  options = JSON.stringify(timeout: timeout)
+  options = JSON.stringify(timeout: timeout, debug: debug)
   args = [main]
   stdout = 'ignore'
   if debug

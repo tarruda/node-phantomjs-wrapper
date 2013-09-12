@@ -68,8 +68,9 @@ suite =
         @page.on('callback', (msg) =>
           expect(msg).to.deep.eql(name: 'msg')
           done())
-        @page.evaluateJavaScript(
-          '(function() { callPhantom({name: "msg"}) })', -> )))
+        @page.evaluateJavaScript('(function() { callPhantom({name: "msg"}) })')
+      )
+    )
 
 
   'inject and callback': (done) ->
@@ -92,7 +93,9 @@ suite =
         done()
     )
     @page.open("http://127.0.0.1:#{@port}/reloadcb", (err) =>
-      @page.reload(=> @page.reload(-> )))
+      # @page.reload(=> @page.reload(-> )))
+      @page.reload(=> @page.reload())
+    )
 
 
 run(suite)

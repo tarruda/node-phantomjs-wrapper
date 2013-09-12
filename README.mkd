@@ -10,9 +10,45 @@ npm install phantomjs-wrapper
 
 ## Usage
 
-All this module is forward method calls from node.js to phantomjs and events
-from phantomjs. [Here](https://github.com/tarruda/node-phantomjs-wrapper/blob/master/src/shared.coffee)
+This package provides a simple wrapper around the phantomjs binary(installed
+automatically with the package). All it does is forward messages to/from a
+child phantomjs process using a simple json protocol via stdio and phantomjs
+builtin web server.
+
+[Here](https://github.com/tarruda/node-phantomjs-wrapper/blob/master/src/shared.coffee)
 is a list of supported method and events.
 
-For basic usage tutorial look in the test file
+Simple example that may be pasted into node.js REPL:
+```js
+phantomjsWrapper = require('phantomjs-wrapper');
 
+phantomjsWrapper({timeout: 60000}, function(err, phantomjs) {
+  phantomjs.createPage(function(err, page) {
+    page.open('http://www.google.com', function(err) {
+      page.on('alert', function(msg) {
+        console.log('Alert:', msg);
+      }); 
+      page.once('loadFinished', function() {
+        page.render('google-reloaded.png', function() {
+          page.close(function() {
+            phantomjs.close(function() {
+              console.log('done!');
+            }); 
+         });
+        });
+      });
+      page.includeJs('http://code.jquery.com/jquery-2.0.3.min.js', function() {
+        page.evaluateJavaScript('(function() { alert("hello!"); })', function() {
+          page.evaluateJavaScript('(function() { $("a").remove(); })', function() {
+            page.render('google-no-anchors.png', function() {
+              page.reload(function() { });
+            });
+          });
+        });
+      });
+    });
+  });
+});
+```
+
+Read phantomJS documentation for more info.

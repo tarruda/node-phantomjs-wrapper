@@ -1,0 +1,1 @@
+callPhantom("Injected script!");

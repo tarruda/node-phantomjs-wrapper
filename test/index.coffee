@@ -8,12 +8,25 @@ suite =
     i = 1
 
     @server = http.createServer((req, res) =>
+      if req.url == '/reloadcb'
+        res.writeHead(200, 'Content-Type': 'text/html')
+        return res.end(
+          """
+          <html>
+            <body>
+              <script>
+                callPhantom('hi');
+              </script>
+            </body>
+          </html>
+          """
+        )
       res.writeHead(200, 'Content-Type': 'text/plain')
       res.end((i++).toString()))
 
     @server.listen(0, '127.0.0.1', =>
       @port = @server.address().port
-      phantomjs((err, phantom) =>
+      phantomjs(timeout: 10000, (err, phantom) =>
         @phantom = phantom
         done()))
 
@@ -57,6 +70,29 @@ suite =
           done())
         @page.evaluateJavaScript(
           '(function() { callPhantom({name: "msg"}) })', -> )))
+
+
+  'inject and callback': (done) ->
+    @page.open("http://127.0.0.1:#{@port}", (err) =>
+      @page.get('plainText', (err, val) =>
+        expect(val).to.eql('3')
+        @page.on('callback', (msg) =>
+          expect(msg).to.deep.eql('Injected script!')
+          done())
+        injectPath = path.resolve(path.join(__dirname, '../../test/inject.js'))
+        @page.injectJs(injectPath, -> )))
+
+
+  'reload': (done) ->
+    i = 0
+    @page.on('callback', (msg) =>
+      i++
+      expect(msg).to.eql('hi')
+      if i == 3
+        done()
+    )
+    @page.open("http://127.0.0.1:#{@port}/reloadcb", (err) =>
+      @page.reload(=> @page.reload(-> )))
 
 
 run(suite)

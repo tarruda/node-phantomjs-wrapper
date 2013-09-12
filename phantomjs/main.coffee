@@ -4,14 +4,13 @@ webserver = require('webserver')
 shared = require('../src/shared')
 
 
+lastActivity = new Date().valueOf()
+
+
 randomPort = ->
   start = 49152; end = 65535
   rv = start + Math.random() * (end - start)
   return Math.round(rv)
-
-
-log = (msg) ->
-  system.stdout.writeLine(msg)
 
 
 pages = []
@@ -84,30 +83,49 @@ class Page
 
 
 send = (message) ->
+  lastActivity = new Date().valueOf()
   message = JSON.stringify(message)
   system.stderr.write(message + '\n')
 
 
-read = ->
+read = (reportError) ->
   message = system.stdin.readLine()
 
   try
     return JSON.parse(message)
   catch e
-    log("#{e.message}(#{message})")
+    if reportError
+      console.log("#{e.message}(#{message})")
+      phantom.exit()
+
+
+options = read(false)
+if typeof options?.timeout != 'number' or options.timeout <= 0
+  timeout = 5000
+else
+  timeout = options.timeout
+
+
+setInterval(->
+  if new Date().valueOf() - lastActivity > timeout
+    send(type: 'phantomTimeout')
+    console.log("\nExiting PhantomJS due to inactivity(#{timeout} ms)\n")
     phantom.exit()
+, 1000)
 
 
-listenPort = system.args[1] or shared.DEFAULT_PORT
+listenPort = system.args[1]
 server = webserver.create()
 requestCb = (req, res) ->
   cb = (msg) ->
+    body = JSON.stringify(msg)
     res.statusCode = 200
     res.setHeader('Content-Type', 'application/json')
-    res.write(JSON.stringify(msg) + '\n')
+    res.write(body)
     res.close()
 
   msg = JSON.parse(req.post)
+  lastActivity = new Date().valueOf()
 
   switch msg.type
     when 'createPage'

@@ -20,9 +20,11 @@ class PhantomJS
   constructor: (@child) ->
     @pages = {}
     @port = null
+    @closed = false
 
 
   createPage: (cb) ->
+    if @closed then throw new Error('phantomjs instance already closed')
     createCb = (msg) =>
       rv = @pages[msg.pageId] = new Page(msg.pageId, this)
       cb(null, rv)
@@ -55,6 +57,8 @@ class PhantomJS
 
   receive: (data) ->
     msg = JSON.parse(data)
+    if msg.type == 'phantomTimeout'
+      return @close(-> )
     page = @pages[msg.pageId]
     event = msg.event.slice(2)
     event = event.charAt(0).toLowerCase() + event.slice(1)
@@ -64,6 +68,7 @@ class PhantomJS
 
 
   close: (cb) ->
+    @closed = true
     @child.on('close', cb)
     @child.kill('SIGTERM')
 
@@ -115,15 +120,24 @@ class Page extends EventEmitter
       name: name, callback)
 
 
-phantomjs = (binPath, cb) ->
-  if typeof binPath != 'string'
-    if typeof binPath == 'function'
-      cb = binPath
-    binPath = phantomBin
+phantomjs = (options, cb) ->
+  timeout = 90000
+  binPath = phantomBin
 
+  if options
+    if typeof options == 'function'
+      cb = option
+    else
+      if options.timeout
+        timeout = options.timeout
+      if options.binPath
+        binPath = options.binPath
+
+  options = JSON.stringify(timeout: timeout)
   args = [main]
   opts = stdio: ['pipe', process.stdout, 'pipe']
   child = spawn(binPath, args, opts)
+  child.stdin.write("#{options}\n", 'utf8')
   instance = new PhantomJS(child)
   ready = false
   ls = linestream()

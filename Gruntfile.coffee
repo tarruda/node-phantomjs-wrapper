@@ -43,6 +43,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-coffee-build'
   grunt.loadNpmTasks 'grunt-coffee-build'
   grunt.loadNpmTasks 'grunt-mocha-debug'
+  grunt.loadNpmTasks 'grunt-release'
 
   grunt.registerTask 'rebuild', [
     'clean'

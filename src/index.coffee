@@ -7,7 +7,7 @@ require('coffee-script')
 linestream = require('line-stream')
 shared = require('./shared')
 
-p = process.cwd()
+p = __dirname
 
 while not fs.existsSync(path.join(p, 'package.json'))
   p = path.dirname(p)

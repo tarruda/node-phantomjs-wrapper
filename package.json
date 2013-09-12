@@ -1,6 +1,6 @@
 {
   "name": "phantomjs-wrapper",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Simple wrapper for a child phantomjs instance. Most of the page API/events are exposed in a transparent way",
   "main": "build/src/index",
   "homepage": "https://github.com/tarruda/node-phantomjs-wrapper",

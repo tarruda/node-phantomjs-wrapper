@@ -8,8 +8,8 @@ exports.events = ['onAlert', 'onCallback', 'onClosing', 'onConfirm',
 
 exports.methods = [
   'addCookie', 'clearCookies', 'close', 'deleteCookie',
-  'evaluateJavaScript', 'go', 'goBack', 'goForward', 'openUrl', 'reload',
-  'render', 'renderBase64', 'sendEvent', 'setContent', 'uploadFile',
+  'evaluateJavaScript', 'go', 'goBack', 'goForward', 'openUrl', 'injectJs',
+  'reload', 'render', 'renderBase64', 'sendEvent', 'setContent', 'uploadFile'
 ]
 
 

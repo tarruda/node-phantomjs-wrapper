@@ -1,8 +1,11 @@
 path = require('path')
+http = require('http')
 fs = require('fs')
+require('coffee-script')
 {spawn} = require('child_process')
+{EventEmitter} = require('events')
 linestream = require('line-stream')
-
+shared = require('./shared')
 
 p = process.cwd()
 
@@ -16,31 +19,48 @@ main = path.join(p, 'phantomjs/main.coffee')
 class PhantomJS
   constructor: (@child) ->
     @pages = {}
-    @requests = {}
-    @requestId = 1
+    @port = null
 
 
   createPage: (cb) ->
     createCb = (msg) =>
-      rv = @pages[msg.pageId] = new Page(msg.pageId)
+      rv = @pages[msg.pageId] = new Page(msg.pageId, this)
       cb(null, rv)
 
     @send(type: 'createPage', createCb)
 
 
   send: (msg, cb) ->
-    id = @requestId++
-    msg.requestId = id
-    @requests[id] = cb
-    msg = JSON.stringify(msg)
-    @child.stdin.write("#{msg}\n", 'utf8')
+    data = JSON.stringify(msg)
+    json = ''
+    url = "http://#{@address}"
+    opts =
+      hostname: '127.0.0.1'
+      port: @port
+      path: '/'
+      method: 'POST'
+      headers:
+        'Content-Length': data.length
+        'Content-Type': 'application/json'
+
+    req = http.request(opts, (res) =>
+      res.setEncoding('utf8')
+      res.on('data', (data) =>
+        json += data)
+      res.on('end', =>
+        cb(JSON.parse(json))))
+
+    req.end(data, 'utf8')
 
 
   receive: (data) ->
     msg = JSON.parse(data)
-    cb = @requests[msg.requestId]
-    delete @requests[msg.requestId]
-    cb(msg)
+    page = @pages[msg.pageId]
+    event = msg.event.slice(2)
+    event = event.charAt(0).toLowerCase() + event.slice(1)
+    if event == 'error'
+      msg.args[0] = new Error(msg.args[0])
+    page.emit(event, msg.args...)
 
 
   close: (cb) ->
@@ -48,9 +68,51 @@ class PhantomJS
     @child.kill('SIGTERM')
 
 
-class Page
-  constructor: (@id) ->
+class Page extends EventEmitter
+  constructor: (@id, @phantomjs) ->
 
+
+  for method in shared.methods.concat(shared.asyncMethods)
+    do (method) =>
+      this::[method] = (args..., cb) ->
+        callback = (msg) ->
+          cb.apply(null, msg.args)
+
+        if @closed
+          throw new Error('page already closed')
+
+        if method == 'close'
+          @closed = true
+
+        @phantomjs.send(
+          type: 'pageMessage'
+          pageId: @id
+          pageMessageType: 'callMethod'
+          name: method
+          args: args, callback)
+
+
+  get: (name, cb) ->
+    callback = (msg) ->
+      cb.apply(null, msg.args)
+
+    @phantomjs.send(
+      type: 'pageMessage'
+      pageId: @id
+      pageMessageType: 'getProperty'
+      name: name, callback)
+
+
+  set: (name, val, cb) ->
+    callback = (msg) ->
+      cb.apply(null, msg.args)
+
+    @phantomjs.send(
+      type: 'pageMessage'
+      pageId: @id
+      pageMessageType: 'setProperty'
+      val: val
+      name: name, callback)
 
 
 phantomjs = (binPath, cb) ->
@@ -67,10 +129,8 @@ phantomjs = (binPath, cb) ->
   ls = linestream()
   child.stderr.pipe(ls)
   ls.on('data', (data) ->
-    if not ready
-      if data != 'ready'
-        throw new Error('unexpected ready message')
-      ready = true
+    if not instance.port
+      instance.port = data
       return cb(null, instance)
     instance.receive(data))
   child.on('error', (err) ->

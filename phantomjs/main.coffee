@@ -1,6 +1,13 @@
 system = require('system')
 webpage = require('webpage')
-shared = require('./shared')
+webserver = require('webserver')
+shared = require('../src/shared')
+
+
+randomPort = ->
+  start = 49152; end = 65535
+  rv = start + Math.random() * (end - start)
+  return Math.round(rv)
 
 
 log = (msg) ->
@@ -23,60 +30,57 @@ class Page
     asyncMethods[method] = true
 
 
-  constructor: (requestId) ->
+  constructor: (cb) ->
     @id = pages.length
     @page = webpage.create()
     pages.push(this)
-    send(type: 'pageCreate', pageId: @id, requestId: requestId)
     for event in shared.events
       do (event) =>
         @page[event] = (args...) =>
           send(type: 'pageEvent', pageId: @id, event: event, args: args)
+    cb(type: 'pageCreate', pageId: @id)
 
 
-  getProperty: (requestId, name) ->
+  getProperty: (name, cb) ->
     val = @page[name]
-    send(type: 'pagePropertyGet', requestId: requestId)
+    cb(args: [null, val])
 
 
-  setProperty: (requestId, name, val) ->
-    msg = type: 'pagePropertySet', requestId: requestId
-
+  setProperty: (name, val, cb) ->
     try
       @page[name] = val
-      msg.status = 'ok'
+      msg = args: [null]
     catch e
-      msg.status = 'error'
-      msg.error = e.message
+      msg = args: [e.message]
 
-    send(msg)
+    cb(msg)
 
 
-  callMethod: (requestId, name, args) ->
-    cb = (args...) =>
-      if args[0] then args[0] = args[0].message
-      send(type: 'pageMethodCallback', requestId: requestId, args: args)
+  callMethod: (name, args, cb) ->
+    callback = (args...) =>
+      if args[0] instanceof Error then args[0] = args[0].message
+      if args[0] == 'success' then args[0] = undefined
+      cb(type: 'pageMethodCallback', args: args)
 
     if name of methods
       try
         rv = @page[name].apply(@page, args)
-        cb(null, rv)
+        callback(null, rv)
       catch e
-        cb(e)
+        callback(e)
     else if name of asyncMethods
-      args.unshift(cb)
+      args.push(callback)
       @page[name].apply(@page, args)
 
 
-  send: (message) ->
+  send: (message, cb) ->
     switch message.pageMessageType
       when 'callMethod'
-        @callMethod(message.requestId, message.name, message.args)
+        @callMethod(message.name, message.args, cb)
       when 'getProperty'
-        @getProperty(message.requestId, message.name)
+        @getProperty(message.name, cb)
       when 'setProperty'
-        @setProperty(message.requestId, message.name, message.val)
-
+        @setProperty(message.name, message.val, cb)
 
 
 send = (message) ->
@@ -94,14 +98,28 @@ read = ->
     phantom.exit()
 
 
-system.stderr.writeLine('ready')
+listenPort = system.args[1] or shared.DEFAULT_PORT
+server = webserver.create()
+requestCb = (req, res) ->
+  cb = (msg) ->
+    res.statusCode = 200
+    res.setHeader('Content-Type', 'application/json')
+    res.write(JSON.stringify(msg) + '\n')
+    res.close()
 
+  msg = JSON.parse(req.post)
 
-while 1
-  message = read()
-
-  switch message.type
+  switch msg.type
     when 'createPage'
-      new Page(message.requestId)
+      new Page(cb)
     when 'pageMessage'
-      pages[message.pageId].send(message)
+      pages[msg.pageId].send(msg, cb)
+
+
+while true
+  port = randomPort()
+  if server.listen("127.0.0.1:#{port}", requestCb)
+    break
+
+
+system.stderr.writeLine(port)

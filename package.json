@@ -30,7 +30,8 @@
     "grunt-mocha-debug": "0.0.4",
     "chai": "~1.7.2",
     "mocha": "~1.12.1",
-    "source-map-support": "~0.2.3"
+    "source-map-support": "~0.2.3",
+    "URLON": "~1.0.1"
   },
   "dependencies": {
     "phantomjs": "~1.9.2-0",

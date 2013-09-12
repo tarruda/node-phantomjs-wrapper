@@ -21,8 +21,6 @@ instances = []
 
 process.on('exit', ->
   for instance in instances
-    console.log(
-      "Killing pending phantomjs instance(pid: #{instance.child.pid})")
     instance.close(-> )
 )
 
@@ -91,15 +89,17 @@ class PhantomJS extends EventEmitter
 class Page extends EventEmitter
   constructor: (@id, @phantomjs) ->
 
-
   for method in shared.methods.concat(shared.asyncMethods)
     do (method) =>
       this::[method] = (args...) ->
+        cb = null
+
         callback = (msg) ->
-          if args.length
-            cb = args[args.length - 1]
-            if typeof cb == 'function'
-              cb.apply(null, msg.args)
+          if cb
+            cb.apply(null, msg.args)
+
+        if typeof args[args.length - 1] == 'function'
+          cb = args.pop()
 
         if @closed
           throw new Error('page already closed')
@@ -117,8 +117,7 @@ class Page extends EventEmitter
 
   get: (name, cb) ->
     callback = (msg) ->
-      if typeof cb == 'function'
-        cb.apply(null, msg.args)
+      cb.apply(null, msg.args)
 
     @phantomjs.send(
       type: 'pageMessage'

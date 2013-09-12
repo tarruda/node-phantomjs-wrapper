@@ -37,13 +37,11 @@ phantomjsWrapper({timeout: 60000}, function(err, phantomjs) {
          });
         });
       });
+      page.evaluateJavaScript('(function() { alert("hello!"); })');
       page.includeJs('http://code.jquery.com/jquery-2.0.3.min.js', function() {
-        page.evaluateJavaScript('(function() { alert("hello!"); })', function() {
-          page.evaluateJavaScript('(function() { $("a").remove(); })', function() {
-            page.render('google-no-anchors.png', function() {
-              page.reload(function() { });
-            });
-          });
+        page.evaluateJavaScript('(function() { $("a").remove(); })');
+        page.render('google-no-anchors.png', function() {
+          page.reload();
         });
       });
     });

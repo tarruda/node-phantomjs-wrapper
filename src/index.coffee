@@ -16,7 +16,7 @@ phantomBin = path.join(p, 'node_modules/phantomjs/bin/phantomjs')
 main = path.join(p, 'phantomjs/main.coffee')
 
 
-class PhantomJS
+class PhantomJS extends EventEmitter
   constructor: (@child) ->
     @pages = {}
     @port = null
@@ -58,7 +58,7 @@ class PhantomJS
   receive: (data) ->
     msg = JSON.parse(data)
     if msg.type == 'phantomTimeout'
-      return @close(-> )
+      @close(-> )
     page = @pages[msg.pageId]
     event = msg.event.slice(2)
     event = event.charAt(0).toLowerCase() + event.slice(1)
@@ -69,6 +69,7 @@ class PhantomJS
 
   close: (cb) ->
     @closed = true
+    @emit('closed')
     @child.on('close', cb)
     @child.kill('SIGTERM')
 
@@ -122,6 +123,7 @@ class Page extends EventEmitter
 
 phantomjs = (options, cb) ->
   timeout = 90000
+  debug = false
   binPath = phantomBin
 
   if options
@@ -132,10 +134,14 @@ phantomjs = (options, cb) ->
         timeout = options.timeout
       if options.binPath
         binPath = options.binPath
+      debug = options.debug
 
   options = JSON.stringify(timeout: timeout)
   args = [main]
-  opts = stdio: ['pipe', process.stdout, 'pipe']
+  stdout = 'ignore'
+  if debug
+    stdout = process.stdout
+  opts = stdio: ['pipe', stdout, 'pipe']
   child = spawn(binPath, args, opts)
   child.stdin.write("#{options}\n", 'utf8')
   instance = new PhantomJS(child)

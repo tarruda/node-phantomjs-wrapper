@@ -26,7 +26,7 @@ suite =
 
     @server.listen(0, '127.0.0.1', =>
       @port = @server.address().port
-      phantomjs(timeout: 10000, (err, phantom) =>
+      phantomjs(debug: false, timeout: 5000, (err, phantom) =>
         @phantom = phantom
         done()))
 

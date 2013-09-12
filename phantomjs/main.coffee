@@ -85,6 +85,7 @@ class Page
 send = (message) ->
   lastActivity = new Date().valueOf()
   message = JSON.stringify(message)
+  console.log("Sending: #{message}")
   system.stderr.write(message + '\n')
 
 
@@ -109,7 +110,7 @@ else
 setInterval(->
   if new Date().valueOf() - lastActivity > timeout
     send(type: 'phantomTimeout')
-    console.log("\nExiting PhantomJS due to inactivity(#{timeout} ms)\n")
+    console.log("Exiting PhantomJS due to inactivity(#{timeout} ms)")
     phantom.exit()
 , 1000)
 
@@ -124,6 +125,7 @@ requestCb = (req, res) ->
     res.write(body)
     res.close()
 
+  console.log("Receiving: #{req.post}")
   msg = JSON.parse(req.post)
   lastActivity = new Date().valueOf()
 
@@ -141,3 +143,4 @@ while true
 
 
 system.stderr.writeLine(port)
+console.log("PhantomJS started. Will exit after #{timeout} ms of inactivity")

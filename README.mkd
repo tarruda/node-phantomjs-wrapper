@@ -1,0 +1,18 @@
+### phantomjs-wrapper
+> Simple API for spawning/controlling phantomjs from node.js
+
+
+## Installation
+
+```sh
+npm install phantomjs-wrapper
+```
+
+## Usage
+
+All this module is forward method calls from node.js to phantomjs and events
+from phantomjs. [Here](https://github.com/tarruda/node-phantomjs-wrapper/blob/master/src/shared.coffee)
+is a list of supported method and events.
+
+For basic usage tutorial look in the test file
+

@@ -62,6 +62,12 @@ class PhantomJS extends EventEmitter
       res.on('end', =>
         cb(JSON.parse(json))))
 
+    req.on('error', (e) =>
+      if e.message.match(/ECONNREFUSED|ECONNRESET/)
+        return # ignore, probably phantom timed out
+      throw e
+    )
+
     req.end(data, 'utf8')
 
 

@@ -34,7 +34,7 @@
     "URLON": "~1.0.1"
   },
   "dependencies": {
-    "phantomjs": "~1.9.2-0",
+    "phantomjs": "1.9.2-5",
     "line-stream": "0.0.3",
     "coffee-script": "~1.6.3"
   }

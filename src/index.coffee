@@ -12,7 +12,7 @@ p = __dirname
 while not fs.existsSync(path.join(p, 'package.json'))
   p = path.dirname(p)
 
-phantomBin = path.join(p, 'node_modules/phantomjs/bin/phantomjs')
+phantomBin = require('phantomjs').path
 main = path.join(p, 'phantomjs/main.coffee')
 
 
